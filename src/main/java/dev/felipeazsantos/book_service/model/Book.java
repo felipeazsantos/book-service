@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.Objects;
 
+@Entity(name = "book")
 public class Book implements Serializable {
 
     @Serial
