@@ -3,6 +3,7 @@ package dev.felipeazsantos.book_service.controller;
 import dev.felipeazsantos.book_service.dto.ExchangeDto;
 import dev.felipeazsantos.book_service.environment.InstanceInformationService;
 import dev.felipeazsantos.book_service.model.Book;
+import dev.felipeazsantos.book_service.proxy.ExchangeProxy;
 import dev.felipeazsantos.book_service.repositoy.BookRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -25,6 +26,9 @@ public class BookController {
     @Autowired
     private BookRepository bookRepository;
 
+    @Autowired
+    private ExchangeProxy exchangeProxy;
+
     // http://localhost:8100/book-service/1/BRL
     @GetMapping(value = "/{id}/{currency}", produces = MediaType.APPLICATION_JSON_VALUE)
     public Book findBook(
@@ -35,21 +39,12 @@ public class BookController {
 
         var book = bookRepository.findById(id).orElseThrow();
 
-        Map<String, String> params = new HashMap<>();
-        params.put("amount", book.getPrice().toString());
-        params.put("from", "USD");
-        params.put("to", currency);
-
-        var response = new RestTemplate()
-                .getForEntity("http://localhost:8000/exchange-service/{amount}/{from}/{to}",
-                        ExchangeDto.class, params);
-
-        ExchangeDto exchangeDto = response.getBody();
+        ExchangeDto exchangeDto = exchangeProxy.getExchange(book.getPrice(), "USD", currency);
         if (exchangeDto != null) {
             book.setPrice(exchangeDto.getConvertedValue());
         }
 
-        book.setEnvironment(port);
+        book.setEnvironment(port + " FEIGN");
         book.setCurrency(currency);
         return book;
     }
